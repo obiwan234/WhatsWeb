@@ -183,6 +183,9 @@ public class NotificationInfo {
             case "ping":
                 this.setText("Pong!");
                 break;
+            case "getgroup": case "getgroupname": case "groupname": case "getname":
+                this.setText("This group connects you with the WhatsApp chat, \"" + this.groupObject.getName() + "\".");
+                break;
             case "refresh": case "refreshchats": case "refreshgroups":
                 new GroupQueryTask().execute();
                 this.setText("Refreshing...");
@@ -212,7 +215,8 @@ public class NotificationInfo {
         if(message.equals("deletegroup") || message.equals("deletechat") || message.equals("delete") || message.equals("test")
                 || message.equals("diagnostics") || message.equals("info") || message.equals("destroy")
                 || message.equals("awake") || message.equals("respond") || message.equals("ping")
-                || message.equals("refresh") || message.equals("refreshchats") || message.equals("refreshgroups")) {
+                || message.equals("refresh") || message.equals("refreshchats") || message.equals("refreshgroups")
+                || message.equals("getgroup") || message.equals("getgroupname") || message.equals("groupname") || message.equals("getname")) {
             return message;
         }
         return null;
@@ -306,7 +310,7 @@ public class NotificationInfo {
 
     public void sendToWhatsApp() {
         //add catch for number to existing (and no avail reply) to notify user that msg did not go through
-        if(this.groupObject!=null&&this.groupObject.getReplyNotification()!=null) {
+        if(this.groupObject!=null&&this.groupObject.getNotificationReplyObject()!=null) {
             this.wasSent=this.groupObject.reply(this.getText());
         } else if (isPhoneNumber(this.getTo())) {
             Intent sendIntent = new Intent(Intent.ACTION_SEND);
@@ -330,7 +334,7 @@ public class NotificationInfo {
             sendGroupMeMessage(message,groupWith);
             //if no group created doesn't add to reply action of default group
             if(message.equals(this.getText())) {
-                groupWith.addToHistory(this);
+                groupWith.setNotificationReplyObject(this);
             }
         } else {//if no username chat instantiated, use email (if uses this, api key may have changed)
             String fromEmail = "whatswebtext@gmail.com";
