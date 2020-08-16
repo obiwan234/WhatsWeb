@@ -46,15 +46,26 @@ public class GroupInfo {
         this.groupID = groupID;
     }
 
-    public void addToHistory(NotificationInfo notification) {
-        Notification.Action replyAction = notification.getReplyAction();
-        if(replyAction!=null) {
-            this.notificationReplyObject = notification.getNotificationObject();
+    public void setNotificationReplyObject(NotificationInfo notification) {
+        if(notification!=null) {
+            Notification.Action replyAction = notification.getReplyAction();
+            if (replyAction != null) {
+                this.notificationReplyObject = notification.getNotificationObject();
+            }
+        }
+    }
+
+    public void setNotificationReplyObject(Notification notification) {
+        if(notification!=null) {
+            Notification.Action replyAction = notification.actions[0];
+            if (replyAction != null) {
+                this.notificationReplyObject = notification;
+            }
         }
     }
 
     public boolean reply(String text) {
-        Notification replyNotification = this.getReplyNotification();
+        Notification replyNotification = this.getNotificationReplyObject();
         RemoteInput[] remoteInputs = replyNotification.actions[0].getRemoteInputs();
         Intent localIntent = new Intent();
         localIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -75,7 +86,7 @@ public class GroupInfo {
         }
     }
 
-    public Notification getReplyNotification() {
+    public Notification getNotificationReplyObject() {
         return this.notificationReplyObject;
     }
 

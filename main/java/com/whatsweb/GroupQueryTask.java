@@ -1,5 +1,6 @@
 package com.whatsweb;
 
+import android.app.Notification;
 import android.os.AsyncTask;
 import android.util.Log;
 
@@ -13,11 +14,14 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 public class GroupQueryTask extends AsyncTask{
 
     protected Object doInBackground(Object... args) {
         try {
+            HashMap<String,GroupInfo> oldGroups= (HashMap<String,GroupInfo>) MainActivity.groupMeChats.clone();
             MainActivity.groupMeChats.clear();
             String groupMeGroupQuery = MainActivity.groupMeBaseUrl + "/groups?" + MainActivity.groupMeApiKey;
             URL groupQueryUrl = new URL(groupMeGroupQuery);
@@ -124,6 +128,15 @@ public class GroupQueryTask extends AsyncTask{
                 addMemberConnection.disconnect();
 
                 MainActivity.groupMeChats.put(name,new GroupInfo(name,smsNumber,groupID));
+            }
+            //copy over replies
+            if(oldGroups.size()>0) {
+                for(String groupName : MainActivity.groupMeChats.keySet()) {
+                    if(oldGroups.get(groupName)!=null) {
+                        Notification replyNotification = oldGroups.get(groupName).getNotificationReplyObject();
+                        MainActivity.groupMeChats.get(groupName).setNotificationReplyObject(replyNotification);
+                    }
+                }
             }
         } catch (Exception e) {
             Log.e("GroupQueryTask", e.getMessage(), e);
