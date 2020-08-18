@@ -5,6 +5,7 @@ import android.content.Context;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 import android.util.Log;
+import android.widget.CheckBox;
 
 import java.util.ArrayList;
 
@@ -31,7 +32,16 @@ public class NotificationListener extends NotificationListenerService {
                 NotificationInfo newNotification = new NotificationInfo(package_name, title, text, notificationObject.when, notificationObject);
                 //Log.v("title", newNotification.getTitle());
                 Log.v("text", newNotification.getText());
-                if(newNotification.getApp().equals("com.whatsapp") && !newNotification.forProgramOnly &&
+                if(newNotification.getApp().equals("com.foxnews.android") &&
+                        ((CheckBox)NotificationInfo.activity.findViewById(R.id.foxAlerts)).isChecked() &&
+                        (MainActivity.receivedMessagesList.size() == 0 || !notificationWasSent(newNotification, MainActivity.receivedMessagesList) )) {
+                    newNotification.sendToUser();
+                    MainActivity.receivedMessagesList.add(newNotification);
+                    if(MainActivity.receivedMessagesList.size()>=20) {
+                        MainActivity.receivedMessagesList.remove(0);
+                    }
+                }
+                if(newNotification.getApp().equals("com.whatsapp") &&
                         (MainActivity.receivedMessagesList.size() == 0 || !notificationWasSent(newNotification, MainActivity.receivedMessagesList) )) {
                     newNotification.sendToUser();
                     MainActivity.receivedMessagesList.add(newNotification);
@@ -49,7 +59,9 @@ public class NotificationListener extends NotificationListenerService {
                 }
             }
             //max notifications is 50 on emulator
-            cancelNotification(sbn.getKey());
+            //Not canceling individual notification on BlueStacks for some reason
+            //cancelNotification(sbn.getKey());
+            cancelAllNotifications();
         } catch(Exception e) {
             e.printStackTrace();
         }

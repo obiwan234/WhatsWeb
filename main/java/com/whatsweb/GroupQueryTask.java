@@ -14,13 +14,17 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
+
 import java.util.HashMap;
 
 public class GroupQueryTask extends AsyncTask{
 
     protected Object doInBackground(Object... args) {
         try {
+            Log.v("Username",MainActivity.userName);
+            Log.v("Phone Number", MainActivity.phoneNumber);
+            Log.v("Phone Email", MainActivity.phoneEmail);
+            String oldUser = MainActivity.userName;
             HashMap<String,GroupInfo> oldGroups= (HashMap<String,GroupInfo>) MainActivity.groupMeChats.clone();
             MainActivity.groupMeChats.clear();
             String groupMeGroupQuery = MainActivity.groupMeBaseUrl + "/groups?" + MainActivity.groupMeApiKey;
@@ -130,7 +134,7 @@ public class GroupQueryTask extends AsyncTask{
                 MainActivity.groupMeChats.put(name,new GroupInfo(name,smsNumber,groupID));
             }
             //copy over replies
-            if(oldGroups.size()>0) {
+            if(oldGroups.size()>0 && MainActivity.userName.equals(oldUser)) { //if same groupMe user
                 for(String groupName : MainActivity.groupMeChats.keySet()) {
                     if(oldGroups.get(groupName)!=null) {
                         Notification replyNotification = oldGroups.get(groupName).getNotificationReplyObject();

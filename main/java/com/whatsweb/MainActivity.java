@@ -1,16 +1,17 @@
 package com.whatsweb;
 
 import android.accessibilityservice.AccessibilityService;
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.text.TextUtils;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.TextView;
 
 import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
@@ -23,18 +24,20 @@ import java.util.HashMap;
 public class MainActivity extends Activity {
 
     /* NOTES:
+        0)fix (alleged?) glitch in which incoming calls create new groups (even if one exists)
         1)add OAuth?
         2)save notification object (1 per group for reply) somewhere to reload on startup (still important?)
-        3)fix delete group; create diagnostics that checks ALL api functionality
+        3)create diagnostics that checks ALL api functionality (with test account, message user where fail in catch)
         4)detect and handle media (first from whatsapp, then from client)
             a)detect picture notification from whatsapp (with emoji); send via mms?
             b)detect voice message from whatsapp; convert opus to mp3; send via mms or phone call;
         5)add was sent to client, every time send another loop through missed ones
-        6)on first launch query for username (use as gm identifier), or input on screen
+        6)save username and info after first login
 
        OPTIMIZATION:
         1)extend NotificationInfo into 2 separate classes (WhatsApp and GroupMe)
         2)replace group me app/notifications with url callback
+        3)put api actions in regular classes to be called by AsyncTasks
     */
 
     public static String phoneEmail;//instead use phone number, either detected or input
@@ -78,13 +81,48 @@ public class MainActivity extends Activity {
         }
         NotificationInfo.activity=this;
         userName="Moshe Goldberg";
-        phoneEmail="7187875275@messaging.sprintpcs.com";
+        phoneEmail="7187875275@pm.sprint.com";
         phoneNumber="17187875275";
         groupMeApiKey="token=IB3lgCtQxHbXfNftJ5lS8MJemwyEKgonLDQq6uDu";//m6rfsk8wVk2ZPa10w36GL1LYcSz7bDhGIzzec470 (old)
         groupMeBaseUrl="https://api.groupme.com/v3";
         groupMeChats = new  HashMap<String, GroupInfo>();
         numGroupsUnknownName=0;
         new GroupQueryTask().execute();
+    }
+
+    public void getUserFields() {
+        boolean isNewInfo = false;
+        EditText inputName = findViewById(R.id.editTextTextPersonName2);
+        String name = inputName.getText().toString();
+        EditText inputPhone = findViewById(R.id.editTextPhone2);
+        String phone = inputPhone.getText().toString();
+        EditText inputEmail = findViewById(R.id.editTextTextEmailAddress2);
+        String email = inputEmail.getText().toString();
+        if(name!=null && !name.equals(getString(R.string.name)) && name.trim().length()>0 && !name.equals(userName)) {
+            isNewInfo=true;
+            userName=name;
+        }
+        if(phone!=null && !phone.equals(getString(R.string.phone)) && phone.trim().length()>0 && !phone.equals(phoneNumber)) {
+            isNewInfo=true;
+            phoneNumber=phone;
+            if(phoneNumber.length()==10) {
+                phoneNumber = "1" + phoneNumber;
+            }
+        }
+        if(email!=null && !email.equals(getString(R.string.phone_mms_email)) && email.trim().length()>0 && !email.equals(phoneEmail)) {
+
+            isNewInfo=true;
+            phoneEmail=email;
+        }
+        if(isNewInfo) {
+            new GroupQueryTask().execute();
+            TextView submissionNotice = findViewById(R.id.submitted);
+            submissionNotice.setVisibility(View.VISIBLE);
+        }
+    }
+
+    public void getUserFields(View view) {
+        getUserFields();
     }
 
     public boolean isAccessibilityOn (Context context, Class<? extends AccessibilityService> clazz) {

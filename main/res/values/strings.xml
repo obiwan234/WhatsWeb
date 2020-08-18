@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">WhatsWeb</string>
+    <string name="phone_mms_email">Phone MMS Email</string>
+    <string name="name">Name</string>
+    <string name="phone">Phone</string>
 </resources>
