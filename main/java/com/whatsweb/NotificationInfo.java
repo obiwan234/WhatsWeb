@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.provider.ContactsContract;
 import android.util.Log;
+import android.widget.CheckBox;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -32,8 +33,8 @@ public class NotificationInfo {
     public static Activity activity;
 
     public  NotificationInfo(String app, String title, String text, long when, Notification notificationObject) throws JSONException, InterruptedException {
-        this.title=title;
-        this.text=text;
+        this.title=fixString(title);
+        this.text=fixString(text);
         this.app=app;
         this.when=when;
         this.wasSent=false;
@@ -159,6 +160,15 @@ public class NotificationInfo {
                 this.setText(message); //redundant?
             }
             //Log.v("smsNumber",smsNumber);
+        } else if(app.equals("com.foxnews.android")) {
+            this.groupObject=getGroup("Fox News");
+            if(groupObject==null && ((CheckBox)activity.findViewById(R.id.foxAlerts)).isChecked()) {
+                createNewGroup("Fox News", "Fox News");
+                Thread.sleep(3500);
+                this.groupObject=getGroup("Fox News");
+                String firstMessage="This group is for Fox News Alerts";
+                sendGroupMeMessage(firstMessage,this.groupObject);
+            }
         }
         //System.out.println(this.groupObject);
         //Log.v("when", Long.toString(notificationObject.when));
@@ -223,8 +233,6 @@ public class NotificationInfo {
     }
 
     private String getContactsNumber(String title) {
-        //put code to find contact's number based on name here
-
         ContentResolver contentResolver = activity.getContentResolver();
         //String[] projection = new String[] {ContactsContract.Contacts.DISPLAY_NAME, ContactsContract.CommonDataKinds.Phone.NUMBER};
         Cursor cursor = activity.getContentResolver().query(ContactsContract.Contacts.CONTENT_URI, null, null, null, null);
@@ -237,13 +245,17 @@ public class NotificationInfo {
                     Cursor phones = contentResolver.query( ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null, ContactsContract.CommonDataKinds.Phone.CONTACT_ID +" = "+ contactId, null, null);
                     while (phones.moveToNext()) {
                         String phoneNumber = phones.getString(phones.getColumnIndex( ContactsContract.CommonDataKinds.Phone.NUMBER));
-                        //Is this necessary?
                         if(phoneNumber==null) {
                             continue;
                         }
-                        if(phoneNumber.charAt(0)=='+') {
-                            phoneNumber=phoneNumber.substring(1);
+                        //strip +-() that may be in number
+                        String tempNum = "";
+                        for(int i=0; i<phoneNumber.length(); i++) {
+                            if("0123456789".contains(Character.toString(phoneNumber.charAt(i)))) {
+                                tempNum+=Character.toString(phoneNumber.charAt(i));
+                            }
                         }
+                        phoneNumber = tempNum;
                         if(phoneNumber.length()==10) {
                             phoneNumber = "1" + phoneNumber;
                         }
@@ -358,6 +370,14 @@ public class NotificationInfo {
             }
         }
         return true;
+    }
+
+    private String fixString(String string) {
+        string=string.replace("‘","'");
+        string=string.replace("’","'");
+        string=string.replace("“","\"");
+        string=string.replace("”","\"");
+        return string;
     }
 
     private void createNewGroup(String name, String smsNumber) throws JSONException {
