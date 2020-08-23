@@ -27,7 +27,8 @@ public class GroupQueryTask extends AsyncTask{
             String oldUser = MainActivity.userName;
             HashMap<String,GroupInfo> oldGroups= (HashMap<String,GroupInfo>) MainActivity.groupMeChats.clone();
             MainActivity.groupMeChats.clear();
-            String groupMeGroupQuery = MainActivity.groupMeBaseUrl + "/groups?" + MainActivity.groupMeApiKey;
+            String groupMeGroupQuery = MainActivity.groupMeBaseUrl + "/groups?per_page=" + MainActivity.overestimateNumGroups + "&"
+                    + MainActivity.groupMeApiKey;
             URL groupQueryUrl = new URL(groupMeGroupQuery);
             HttpURLConnection groupQueryConnection = (HttpURLConnection) groupQueryUrl.openConnection();
             JSONObject groupQueryJSON;

@@ -27,11 +27,12 @@ public class MainActivity extends Activity {
     /*
        BUGS:
         1)Crashes when Fox Notification is picture
+        2)Pictures are sent multiple times (often by wrong sender)
 
        NOTES:
-        !)use date to track images that client has received or not received
-        *)Convert all names to Proper Case
-        0)fix (alleged?) glitch in which incoming calls create new groups (even if one exists)
+        !)use date to track images that client has received and not received
+        *)compress images before sending
+        0)Convert all names to Proper Case
         1)add OAuth?
         2)save notification object (1 per group for reply) somewhere to reload on startup (still important?)
         3)create diagnostics that checks ALL api functionality (with test account, message user where fail in catch)
@@ -45,6 +46,8 @@ public class MainActivity extends Activity {
         2)replace group me app/notifications with url callback
         3)put api actions in regular classes to be called by AsyncTasks
     */
+
+    public static final int overestimateNumGroups = 500;
 
     public static String phoneEmail;//instead use phone number, either detected or input
     public static String phoneNumber;

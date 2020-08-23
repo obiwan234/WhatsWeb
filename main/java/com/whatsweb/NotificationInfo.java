@@ -32,6 +32,8 @@ public class NotificationInfo {
     private GroupInfo groupObject;
     public boolean wasSent;
     public boolean forProgramOnly;
+    public boolean isPicture;
+    private String caption;
 
     public static Activity activity;
 
@@ -43,13 +45,14 @@ public class NotificationInfo {
         this.wasSent=false;
         this.notificationObject=notificationObject;
         this.forProgramOnly=false;
+        this.isPicture=false;
         if(app.equals("com.whatsapp")) {//handle phone num not in contacts
             //save reply object
             if(notificationObject.actions!=null) {
                 Notification.Action reply = notificationObject.actions[0];
                 this.setReplyAction(reply);
             }
-            boolean isPicture=this.text.indexOf(String.valueOf("\uD83D\uDCF7"))==0;//Character.toString(this.text.charAt(0)).equals(String.valueOf("\uD83D\uDCF7"))
+            this.isPicture=this.text.indexOf(String.valueOf("\uD83D\uDCF7"))==0;//Character.toString(this.text.charAt(0)).equals(String.valueOf("\uD83D\uDCF7"))
             //parse group chat title
             if(title.contains(":")) {
                 int colonIndex = this.title.indexOf(":");
@@ -78,14 +81,11 @@ public class NotificationInfo {
                 sendGroupMeMessage(firstMessage,this.groupObject);
             }
             //handle media: (📷 is "\uD83D\uDCF7")
-            //if first char is 📷, (above)
-            // find most recent file in whatsapp/media/whatsapp images/ and whatsapp/media/whatsapp images/private/ and take most recent
-            // and send it via email with rest of message in header; set text that informs client of pic
-            if(isPicture) {
-                String caption = this.text.substring(this.text.indexOf(String.valueOf("\uD83D\uDCF7"))+3);//emoji is 2 and space that follows is one more
-                System.out.println(caption);
-                this.text = "(Picture) " + caption;//add message here
-                handleAsWhatsAppImage(caption);
+            if(this.isPicture) {
+                this.caption = this.text.substring(0,this.text.indexOf(String.valueOf("\uD83D\uDCF7")))
+                        +this.text.substring(this.text.indexOf(String.valueOf("\uD83D\uDCF7"))+3);//emoji is 2 and space that follows is one more
+                System.out.println(this.caption);
+                this.text = "(Picture) " + this.caption;//add message here
             }
         } else if(app.equals("com.groupme.android")) {
             if(!this.getTitle().contains(MainActivity.userName+" WhatsWeb with")) {
@@ -189,12 +189,12 @@ public class NotificationInfo {
         //Log.v("when", Long.toString(notificationObject.when));
     }
 
-    private void handleAsWhatsAppImage(String caption) throws InterruptedException {
+    private void handleAsWhatsAppImage() throws InterruptedException {
         String fromEmail = "whatswebtext@gmail.com";
         String fromName = this.title;
         String fromPassword = "ChoneinHadaas425";
         String toEmail = MainActivity.phoneEmail;
-        String emailSubject = caption;
+        String emailSubject = this.caption;
         String emailBody = "";
 
         Thread.sleep(1500);//wait for download
@@ -380,7 +380,7 @@ public class NotificationInfo {
         }
     }
 
-    public void sendToUser() throws JSONException {
+    public void sendToUser() throws JSONException, InterruptedException {
         GroupInfo groupWith = this.groupObject;
         String message = this.getText();
         if(groupWith==null) {
@@ -404,6 +404,9 @@ public class NotificationInfo {
             new SendMailTask().execute(fromEmail, fromName, fromPassword, toEmail, emailSubject, emailBody, null);
         }
         this.wasSent=true;
+        if(this.isPicture) {
+            handleAsWhatsAppImage();
+        }
     }
 
     private boolean isPhoneNumber(String potentialPhoneNumber) {
