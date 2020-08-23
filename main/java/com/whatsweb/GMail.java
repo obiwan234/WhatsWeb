@@ -82,9 +82,6 @@ public class GMail {
         transport.connect(emailHost, fromEmail, fromPassword);
         transport.sendMessage(emailMessage, emailMessage.getAllRecipients());
         transport.close();
-        if(this.attachment!=null) {
-            this.attachment.delete();
-        }
     }
 
 }
