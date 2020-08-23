@@ -16,10 +16,10 @@ import java.net.URL;
 public class SendGroupMeTask extends  AsyncTask{
 
     protected Object doInBackground(Object... args) {
-        JSONObject messageObject = (JSONObject) args[0];
-        GroupInfo group = (GroupInfo) args[1];
-        String sendMessageLink;
         try {
+            JSONObject messageObject = (JSONObject) args[0];
+            GroupInfo group = (GroupInfo) args[1];
+            String sendMessageLink;
             sendMessageLink = MainActivity.groupMeBaseUrl + "/groups/" + group.getGroupID() + "/messages?" + MainActivity.groupMeApiKey;
             URL sendMessageUrl = new URL(sendMessageLink);
             HttpURLConnection sendMessageConnection = (HttpURLConnection) sendMessageUrl.openConnection();
