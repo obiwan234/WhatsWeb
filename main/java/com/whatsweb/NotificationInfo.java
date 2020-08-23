@@ -5,6 +5,7 @@ import android.app.Notification;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.database.Cursor;
+import android.os.Environment;
 import android.provider.ContactsContract;
 import android.util.Log;
 import android.widget.CheckBox;
@@ -13,6 +14,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 public class NotificationInfo {
@@ -46,6 +49,7 @@ public class NotificationInfo {
                 Notification.Action reply = notificationObject.actions[0];
                 this.setReplyAction(reply);
             }
+            boolean isPicture=this.text.indexOf(String.valueOf("\uD83D\uDCF7"))==0;//Character.toString(this.text.charAt(0)).equals(String.valueOf("\uD83D\uDCF7"))
             //parse group chat title
             if(title.contains(":")) {
                 int colonIndex = this.title.indexOf(":");
@@ -72,6 +76,16 @@ public class NotificationInfo {
                 String firstMessage="This group connects to the WhatsApp chat, \""
                          + this.getTitle() + "\". The first text you send on this chat will not be sent to WhatsApp.";
                 sendGroupMeMessage(firstMessage,this.groupObject);
+            }
+            //handle media: (📷 is "\uD83D\uDCF7")
+            //if first char is 📷, (above)
+            // find most recent file in whatsapp/media/whatsapp images/ and whatsapp/media/whatsapp images/private/ and take most recent
+            // and send it via email with rest of message in header; set text that informs client of pic
+            if(isPicture) {
+                String caption = this.text.substring(this.text.indexOf(String.valueOf("\uD83D\uDCF7"))+3);//emoji is 2 and space that follows is one more
+                System.out.println(caption);
+                this.text = "(Picture) " + caption;//add message here
+                handleAsWhatsAppImage(caption);
             }
         } else if(app.equals("com.groupme.android")) {
             if(!this.getTitle().contains(MainActivity.userName+" WhatsWeb with")) {
@@ -161,6 +175,7 @@ public class NotificationInfo {
             }
             //Log.v("smsNumber",smsNumber);
         } else if(app.equals("com.foxnews.android")) {
+            this.text=this.title+"\n"+this.text;
             this.groupObject=getGroup("Fox News");
             if(groupObject==null && ((CheckBox)activity.findViewById(R.id.foxAlerts)).isChecked()) {
                 createNewGroup("Fox News", "Fox News");
@@ -174,9 +189,39 @@ public class NotificationInfo {
         //Log.v("when", Long.toString(notificationObject.when));
     }
 
+    private void handleAsWhatsAppImage(String caption) throws InterruptedException {
+        String fromEmail = "whatswebtext@gmail.com";
+        String fromName = this.title;
+        String fromPassword = "ChoneinHadaas425";
+        String toEmail = MainActivity.phoneEmail;
+        String emailSubject = caption;
+        String emailBody = "";
+
+        Thread.sleep(1500);//wait for download
+        File directory = new File(Environment.getExternalStorageDirectory().getPath()+"/WhatsApp/Media/WhatsApp Images");
+        ArrayList<File> files = getAllFiles(directory);
+        System.out.println("Num Files: " + files.size());
+        long lastModifiedTime = Long.MIN_VALUE;
+        File chosenFile = null;
+        if (files!=null && files.size()!=0) {
+            for (File file : files) {
+                if (file.lastModified() > lastModifiedTime) {
+                    chosenFile = file;
+                    lastModifiedTime = file.lastModified();
+                }
+            }
+        }
+        System.out.println(chosenFile.getPath());
+
+        new SendMailTask().execute(fromEmail, fromName, fromPassword, toEmail, emailSubject, emailBody, chosenFile);
+    }
+
     private void handleAsProgramMessage() throws JSONException, InterruptedException {
         String queryMessage = this.getText();
         switch (queryMessage) {
+            case "stay": case "here":
+                this.setText("Your messages will now be sent to this chat.");
+                break;
             case "test":
                 this.setText("WhatsWeb is working.");
                 break;
@@ -226,7 +271,8 @@ public class NotificationInfo {
                 || message.equals("diagnostics") || message.equals("info") || message.equals("destroy")
                 || message.equals("awake") || message.equals("respond") || message.equals("ping")
                 || message.equals("refresh") || message.equals("refreshchats") || message.equals("refreshgroups")
-                || message.equals("getgroup") || message.equals("getgroupname") || message.equals("groupname") || message.equals("getname")) {
+                || message.equals("getgroup") || message.equals("getgroupname") || message.equals("groupname") || message.equals("getname")
+                || message.equals("stay") || message.equals("here")) {
             return message;
         }
         return null;
@@ -350,11 +396,12 @@ public class NotificationInfo {
             }
         } else {//if no username chat instantiated, use email (if uses this, api key may have changed)
             String fromEmail = "whatswebtext@gmail.com";
+            String fromName = this.title;
             String fromPassword = "ChoneinHadaas425";
             String toEmail = MainActivity.phoneEmail;
             String emailSubject = "";
-            String emailBody = this.title + ": " + this.text;
-            new SendMailTask().execute(fromEmail, fromPassword, toEmail, emailSubject, emailBody);
+            String emailBody = this.text;
+            new SendMailTask().execute(fromEmail, fromName, fromPassword, toEmail, emailSubject, emailBody, null);
         }
         this.wasSent=true;
     }
@@ -378,6 +425,18 @@ public class NotificationInfo {
         string=string.replace("“","\"");
         string=string.replace("”","\"");
         return string;
+    }
+
+    public ArrayList<File> getAllFiles(File filePath) {
+        ArrayList<File> allFiles = new ArrayList<File>();
+        if(filePath==null || filePath.isFile()) {
+            allFiles.add(filePath);
+        } else if(filePath.isDirectory()){
+            for (File subFilePath : filePath.listFiles()) {
+                allFiles.addAll(getAllFiles(subFilePath));
+            }
+        }
+        return  allFiles;
     }
 
     private void createNewGroup(String name, String smsNumber) throws JSONException {

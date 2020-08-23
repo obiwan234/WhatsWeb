@@ -1,5 +1,6 @@
 package com.whatsweb;
 
+import android.Manifest;
 import android.accessibilityservice.AccessibilityService;
 import android.app.Activity;
 import android.content.Context;
@@ -23,14 +24,19 @@ import java.util.HashMap;
 
 public class MainActivity extends Activity {
 
-    /* NOTES:
+    /*
+       BUGS:
+        1)Crashes when Fox Notification is picture
+
+       NOTES:
+        !)use date to track images that client has received or not received
+        *)Convert all names to Proper Case
         0)fix (alleged?) glitch in which incoming calls create new groups (even if one exists)
         1)add OAuth?
         2)save notification object (1 per group for reply) somewhere to reload on startup (still important?)
         3)create diagnostics that checks ALL api functionality (with test account, message user where fail in catch)
         4)detect and handle media (first from whatsapp, then from client)
-            a)detect picture notification from whatsapp (with emoji); send via mms?
-            b)detect voice message from whatsapp; convert opus to mp3; send via mms or phone call;
+            a)detect voice message from whatsapp; convert opus to mp3; send via mms or phone call;
         5)add was sent to client, every time send another loop through missed ones
         6)save username and info after first login
 
@@ -74,6 +80,15 @@ public class MainActivity extends Activity {
         }
         while(ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
             //don't go to next step until contacts permission
+        }
+        if(ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                    1);
+
+        }
+        while(ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            //don't go to next step until read files permission
         }
         Context context=getApplicationContext();
         if (!isAccessibilityOn (context, WhatsappAccessibilityService.class)) {
