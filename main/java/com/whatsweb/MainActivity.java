@@ -101,7 +101,7 @@ public class MainActivity extends Activity {
         userName="Moshe Goldberg";
         phoneEmail="7187875275@pm.sprint.com";
         phoneNumber="17187875275";
-        groupMeApiKey="token=NT7QDhcg7zXwTgdTlzqDKW4uy2TAuRkhHztn6KUP";//m6rfsk8wVk2ZPa10w36GL1LYcSz7bDhGIzzec470 (old)
+        groupMeApiKey="token=iAepUpNi0hE3bR6sBS0gfrceTnXVNBODWUDDo5Bk";//m6rfsk8wVk2ZPa10w36GL1LYcSz7bDhGIzzec470 (old) //NT7QDhcg7zXwTgdTlzqDKW4uy2TAuRkhHztn6KUP
         groupMeBaseUrl="https://api.groupme.com/v3";
         groupMeChats = new  HashMap<String, GroupInfo>();
         numGroupsUnknownName=0;
