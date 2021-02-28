@@ -15,6 +15,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -33,160 +34,181 @@ public class NotificationInfo {
     public boolean wasSent;
     public boolean forProgramOnly;
     public boolean isPicture;
+    public boolean isVoiceNote;
     private String caption;
 
     public static Activity activity;
 
     public  NotificationInfo(String app, String title, String text, long when, Notification notificationObject) throws JSONException, InterruptedException {
-        this.title=fixString(title);
-        this.text=fixString(text);
-        this.app=app;
-        this.when=when;
-        this.wasSent=false;
-        this.notificationObject=notificationObject;
-        this.forProgramOnly=false;
-        this.isPicture=false;
-        if(app.equals("com.whatsapp")) {//handle phone num not in contacts
-            //save reply object
-            if(notificationObject.actions!=null) {
-                Notification.Action reply = notificationObject.actions[0];
-                this.setReplyAction(reply);
-            }
-            this.isPicture=this.text.indexOf(String.valueOf("\uD83D\uDCF7"))==0;//Character.toString(this.text.charAt(0)).equals(String.valueOf("\uD83D\uDCF7"))
-            //parse group chat title
-            if(title.contains(":")) {
-                int colonIndex = this.title.indexOf(":");
-                String sender = this.title.substring(colonIndex+2);
-                this.text = sender + ": " + this.text;
-                this.title = this.title.substring(0,colonIndex);
-                if(this.title.contains("messages)")) {
-                    this.title=this.title.substring(0,this.title.lastIndexOf("("));
+        try {
+            this.title = fixString(title);
+            this.text = fixString(text);
+            this.app = app;
+            this.when = when;
+            this.wasSent = false;
+            this.notificationObject = notificationObject;
+            this.forProgramOnly = false;
+            this.isPicture = false;
+            this.isVoiceNote=false;
+            if (app.equals("com.whatsapp")) {//handle phone num not in contacts
+                //save reply object
+                if (notificationObject.actions != null) {
+                    Notification.Action reply = notificationObject.actions[0];
+                    this.setReplyAction(reply);
                 }
-                //sometimes group messages register with last char as " "
-                if(this.title.charAt(this.title.length()-1)==' ') {
-                    this.title=this.title.substring(0,this.title.length()-1);
-                }
-            }
-            String contactsSms = getContactsNumber(this.getTitle());
-            this.groupObject=getGroup(this.getTitle(),contactsSms);
-            if(groupObject==null) {
-                if(contactsSms==null) {
-                    contactsSms = this.title;
-                }
-                createNewGroup(this.title,contactsSms);
-                Thread.sleep(2500);
-                this.groupObject=getGroup(this.getTitle(),contactsSms);
-                String firstMessage="This group connects to the WhatsApp chat, \""
-                         + this.getTitle() + "\". The first text you send on this chat will not be sent to WhatsApp.";
-                sendGroupMeMessage(firstMessage,this.groupObject);
-            }
-            //handle media: (📷 is "\uD83D\uDCF7")
-            if(this.isPicture) {
-                this.caption = this.text.substring(0,this.text.indexOf(String.valueOf("\uD83D\uDCF7")))
-                        +this.text.substring(this.text.indexOf(String.valueOf("\uD83D\uDCF7"))+3);//emoji is 2 and space that follows is one more
-                System.out.println(this.caption);
-                this.text = "(Picture) " + this.caption;//add message here
-            }
-        } else if(app.equals("com.groupme.android")) {
-            if(!this.getTitle().contains(MainActivity.userName+" WhatsWeb with")) {
-                this.wasSent=true;//message not intended for this client
-            }
-            this.text = this.getText().substring(this.getText().indexOf(':')+2);//their name in chat isnt important
-            /////////////////parse////////////////////////
-            int uselessLengthName = (MainActivity.userName + " WhatsWeb with ").length();
-            this.setTitle(this.getTitle().substring(uselessLengthName));
-            this.groupObject=getGroup(this.getTitle());
-            String smsNumber = null;
-            if(this.groupObject!=null) {
-                smsNumber=groupObject.getPhoneNumber();
-            }
-            if(smsNumber!=null && smsNumber.length()==10) {
-                smsNumber = "1" + smsNumber;
-            }
-            String message = this.getText();
-            if(this.getText().length()>1 && this.getText().charAt(0)=='@') {
-                String possibleMessage = isMeantForProgram(this.getText().substring(1));
-                if(possibleMessage!=null) {
-                    this.setText(possibleMessage);
-                    this.forProgramOnly=true;
-                    handleAsProgramMessage();
-                }
-            }
-            if(this.getText().length()>1 && this.getText().charAt(0)=='@' && !forProgramOnly) {
-                String[] textAsArray = this.getText().substring(1).split(" ",-1);
-                String name = "";
-                for(String wordOfText : textAsArray) {
-                    if(isPhoneNumber(wordOfText)) {
-                        smsNumber=wordOfText;
-                        break;
-                    } else {
-                        name += wordOfText+" ";
+                this.isPicture = this.text.indexOf(String.valueOf("\uD83D\uDCF7")) == 0;//Character.toString(this.text.charAt(0)).equals(String.valueOf("\uD83D\uDCF7"))
+                this.isVoiceNote = this.text.indexOf(String.valueOf("\uD83C\uDFA4")) == 0;
+                //parse group chat title
+                if (title.contains(":")) {
+                    int colonIndex = this.title.indexOf(":");
+                    String sender = this.title.substring(colonIndex + 2);
+                    this.text = sender + ": " + this.text;
+                    this.title = this.title.substring(0, colonIndex);
+                    if (this.title.contains("messages)")) {
+                        this.title = this.title.substring(0, this.title.lastIndexOf("("));
+                    }
+                    //sometimes group messages register with last char as " "
+                    if (this.title.charAt(this.title.length() - 1) == ' ') {
+                        this.title = this.title.substring(0, this.title.length() - 1);
                     }
                 }
-                if(name.length()>=1) {
-                    //get rid of extra space added at end
-                    name = name.substring(0, name.length() - 1);
-                }
-                //exceptions
-                if(Arrays.equals(name.split(" ", -1), textAsArray)) {
-                    //if no number
-                    if(name.contains("(")&&name.contains(")")) {
-                        name=name.substring(name.indexOf("("),name.indexOf(")")+1);
+                String contactsSms = getContactsNumber(this.getTitle());
+                this.groupObject = getGroup(this.getTitle(), contactsSms);
+                if (groupObject == null) {
+                    if (contactsSms == null) {
+                        contactsSms = this.title;
                     }
-                    if(name.contains("[")&&name.contains("]")) {
-                        name=name.substring(name.indexOf("["),name.indexOf("]")+1);
-                    }
+                    createNewGroup(this.title, contactsSms);
+                    Thread.sleep(2500);
+                    this.groupObject = getGroup(this.getTitle(), contactsSms);
+                    String firstMessage = "This group connects to the WhatsApp chat, \""
+                            + this.getTitle() + "\". The first text you send on this chat will not be sent to WhatsApp.";
+                    sendGroupMeMessage(firstMessage, this.groupObject);
                 }
-                if(name.equals("")) {
-                    //if no name before number
-                    name = "Unknown " + (MainActivity.numGroupsUnknownName + 1);
+                //handle media: (📷 is "\uD83D\uDCF7")
+                if (this.isPicture) {
+                    this.caption = this.text.substring(0, this.text.indexOf(String.valueOf("\uD83D\uDCF7")))
+                            + this.text.substring(this.text.indexOf(String.valueOf("\uD83D\uDCF7")) + 3);//emoji is 2 and space that follows is one more
+                    System.out.println(this.caption);
+                    this.text = "(Picture) " + this.caption;//add message here
                 }
-                message=message.substring(message.indexOf(smsNumber)+smsNumber.length());
-                this.setText(message);
-                if((name.charAt(0)=='('&&name.charAt(name.length()-1)==')')||(name.charAt(0)=='['&&name.charAt(name.length()-1)==']')) {
-                    //take ()[] out of name (kept out of message earlier)
-                    name=name.substring(1,name.length()-1);
-                    String potentialSMS = getContactsNumber(name);
-                    if(potentialSMS!=null) {
-                        smsNumber=potentialSMS;
-                    } else {
-                        smsNumber=name;
-                    }
+                //(🎤 is "\uD83C\uDFA4")
+                if (this.isVoiceNote) {
+                    String voiceNoteLength = this.text.substring(this.text.indexOf("(")+1,this.text.indexOf(")"));
+                    this.text = "(Voice Note) " + voiceNoteLength;
                 }
-                //take out dashes
-                if(smsNumber.length()==10) {
+            } else if (app.equals("com.groupme.android")) {
+                if (!this.getTitle().contains(MainActivity.userName + " WhatsWeb with")) {
+                    this.wasSent = true;//message not intended for this client
+                }
+                this.text = this.getText().substring(this.getText().indexOf(':') + 2);//their name in chat isn't important
+                /////////////////parse////////////////////////
+                int uselessLengthName = (MainActivity.userName + " WhatsWeb with ").length();
+                this.setTitle(this.getTitle().substring(uselessLengthName));
+                this.groupObject = getGroup(this.getTitle());
+                String smsNumber = null;
+                if (this.groupObject != null) {
+                    smsNumber = groupObject.getPhoneNumber();
+                }
+                if (smsNumber != null && smsNumber.length() == 10) {
                     smsNumber = "1" + smsNumber;
                 }
-                GroupInfo possibleGroup=getGroup(name,smsNumber);
-                if(possibleGroup!=null) {
-                    this.groupObject=possibleGroup;
-                } else {
-                    createNewGroup(name,smsNumber);
-                    Thread.sleep(2500);
-                    this.groupObject=getGroup(name,smsNumber);
-                    String firstMessage="This group connects to the WhatsApp chat, \""
-                            + name + "\". The first text you send on this chat will not be sent to WhatsApp.";
-                    sendGroupMeMessage(firstMessage,this.groupObject);
+                String message = this.getText();
+                if (this.getText().length() > 1 && this.getText().charAt(0) == '@') {
+                    String possibleMessage = isMeantForProgram(this.getText().substring(1));
+                    if (possibleMessage != null) {
+                        this.setText(possibleMessage);
+                        this.forProgramOnly = true;
+                        handleAsProgramMessage();
+                    }
+                }
+                if(this.getTitle().toLowerCase().contains("supreme court archive")) {
+                    this.forProgramOnly=true;
+                    new SendCaseTask().execute(this.getText());
+                    this.setText("Processing Request \""+this.getText()+"\"");
+                    this.sendToUser();
+                }
+                if(this.getTitle().toLowerCase().contains("word search")) {
+                    this.groupObject = getGroup("Word Search");
+                    this.forProgramOnly=true;
+                    new SendDefinitionTask().execute(this.getText(),this.groupObject,Long.toString(this.getWhen()));
+                }
+                if (this.getText().length() > 1 && this.getText().charAt(0) == '@' && !forProgramOnly) {
+                    String[] textAsArray = this.getText().substring(1).split(" ", -1);
+                    String name = "";
+                    for (String wordOfText : textAsArray) {
+                        if (isPhoneNumber(wordOfText)) {
+                            smsNumber = wordOfText;
+                            break;
+                        } else {
+                            name += wordOfText + " ";
+                        }
+                    }
+                    if (name.length() >= 1) {
+                        //get rid of extra space added at end
+                        name = name.substring(0, name.length() - 1);
+                    }
+                    //exceptions
+                    if (Arrays.equals(name.split(" ", -1), textAsArray)) {
+                        //if no number
+                        if (name.contains("(") && name.contains(")")) {
+                            name = name.substring(name.indexOf("("), name.indexOf(")") + 1);
+                        }
+                        if (name.contains("[") && name.contains("]")) {
+                            name = name.substring(name.indexOf("["), name.indexOf("]") + 1);
+                        }
+                    }
+                    if (name.equals("")) {
+                        //if no name before number
+                        name = "Unknown " + (MainActivity.numGroupsUnknownName + 1);
+                    }
+                    message = message.substring(message.indexOf(smsNumber) + smsNumber.length());
+                    this.setText(message);
+                    if ((name.charAt(0) == '(' && name.charAt(name.length() - 1) == ')') || (name.charAt(0) == '[' && name.charAt(name.length() - 1) == ']')) {
+                        //take ()[] out of name (kept out of message earlier)
+                        name = name.substring(1, name.length() - 1);
+                        String potentialSMS = getContactsNumber(name);
+                        if (potentialSMS != null) {
+                            smsNumber = potentialSMS;
+                        } else {
+                            smsNumber = name;
+                        }
+                    }
+                    //take out dashes
+                    if (smsNumber.length() == 10) {
+                        smsNumber = "1" + smsNumber;
+                    }
+                    GroupInfo possibleGroup = getGroup(name, smsNumber);
+                    if (possibleGroup != null) {
+                        this.groupObject = possibleGroup;
+                    } else {
+                        createNewGroup(name, smsNumber);
+                        Thread.sleep(2500);
+                        this.groupObject = getGroup(name, smsNumber);
+                        String firstMessage = "This group connects to the WhatsApp chat, \""
+                                + name + "\". The first text you send on this chat will not be sent to WhatsApp.";
+                        sendGroupMeMessage(firstMessage, this.groupObject);
+                    }
+                }
+                if (!forProgramOnly) {
+                    this.setTo(smsNumber);
+                    this.setText(message); //redundant?
+                }
+                //Log.v("smsNumber",smsNumber);
+            } else if (app.equals("com.foxnews.android")) {
+                this.text = this.title + "\n" + this.text;
+                this.groupObject = getGroup("Fox News");
+                if (groupObject == null && ((CheckBox) activity.findViewById(R.id.foxAlerts)).isChecked()) {
+                    createNewGroup("Fox News", "Fox News");
+                    Thread.sleep(3500);
+                    this.groupObject = getGroup("Fox News");
+                    String firstMessage = "This group is for Fox News Alerts";
+                    sendGroupMeMessage(firstMessage, this.groupObject);
                 }
             }
-            if(!forProgramOnly) {
-                this.setTo(smsNumber);
-                this.setText(message); //redundant?
-            }
-            //Log.v("smsNumber",smsNumber);
-        } else if(app.equals("com.foxnews.android")) {
-            this.text=this.title+"\n"+this.text;
-            this.groupObject=getGroup("Fox News");
-            if(groupObject==null && ((CheckBox)activity.findViewById(R.id.foxAlerts)).isChecked()) {
-                createNewGroup("Fox News", "Fox News");
-                Thread.sleep(3500);
-                this.groupObject=getGroup("Fox News");
-                String firstMessage="This group is for Fox News Alerts";
-                sendGroupMeMessage(firstMessage,this.groupObject);
-            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        //System.out.println(this.groupObject);
-        //Log.v("when", Long.toString(notificationObject.when));
     }
 
     private void handleAsWhatsAppImage() throws InterruptedException {
@@ -197,23 +219,60 @@ public class NotificationInfo {
         String emailSubject = this.caption;
         String emailBody = "";
 
-        Thread.sleep(1500);//wait for download
+        Thread.sleep(2000);//wait for download
         File directory = new File(Environment.getExternalStorageDirectory().getPath()+"/WhatsApp/Media/WhatsApp Images");
         ArrayList<File> files = getAllFiles(directory);
         System.out.println("Num Files: " + files.size());
-        long lastModifiedTime = Long.MIN_VALUE;
-        File chosenFile = null;
+        ArrayList<File> imageBatch = new ArrayList<File>();
         if (files!=null && files.size()!=0) {
             for (File file : files) {
-                if (file.lastModified() > lastModifiedTime) {
-                    chosenFile = file;
-                    lastModifiedTime = file.lastModified();
+                if(!MainActivity.sentImageList.contains(file.getPath())) {
+                    imageBatch.add(file);
+                    MainActivity.sentImageList.add(file.getPath());
                 }
             }
         }
-        System.out.println(chosenFile.getPath());
+        if(imageBatch.size()!=0) {
+            new SendMailTask().execute(fromEmail, fromName, fromPassword, toEmail, emailSubject, emailBody, imageBatch /*chosenFile*/);
+        }
+    }
 
-        new SendMailTask().execute(fromEmail, fromName, fromPassword, toEmail, emailSubject, emailBody, chosenFile);
+    private void handleAsWhatsAppVoiceNote() throws InterruptedException {
+//        String fromEmail = "whatswebtext@gmail.com";
+//        String fromName = this.title;
+//        String fromPassword = "ChoneinHadaas425";
+//        String toEmail = MainActivity.phoneEmail;
+//        String emailSubject = this.caption;
+//        String emailBody = "";
+//
+//        Thread.sleep(3500);//wait for download
+//        File directory = new File(Environment.getExternalStorageDirectory().getPath()+"/WhatsApp/Media/WhatsApp Voice Notes");
+//        ArrayList<File> files = getAllFiles(directory);
+//        System.out.println("Num Files: " + files.size());
+//        ArrayList<File> voiceNoteBatch = new ArrayList<File>();
+//        if (files!=null && files.size()!=0) {
+//            for (File file : files) {
+//                if(!MainActivity.sentVoiceNoteList.contains(file.getPath())) {
+//                    voiceNoteBatch.add(file);
+//                    MainActivity.sentVoiceNoteList.add(file.getPath());
+//                }
+//            }
+//        }
+//        //convert
+//        ArrayList<File> convertedVoiceNoteBatch = new ArrayList<File>();
+//        for(File opusVoiceNote : voiceNoteBatch) {
+//            try{
+//                //AudioInputStream
+//            }catch (IOException e) {
+//                System.out.println("Error: failure attempting to read "
+//                        + opusVoiceNote.getPath() + "!");
+//                return;
+//            }
+//        }
+//
+//        if(voiceNoteBatch.size()!=0) {
+//            new SendMailTask().execute(fromEmail, fromName, fromPassword, toEmail, emailSubject, emailBody, convertedVoiceNoteBatch /*chosenFile*/);
+//        }
     }
 
     private void handleAsProgramMessage() throws JSONException, InterruptedException {
@@ -406,6 +465,8 @@ public class NotificationInfo {
         this.wasSent=true;
         if(this.isPicture) {
             handleAsWhatsAppImage();
+        } else if (this.isVoiceNote) {
+            handleAsWhatsAppVoiceNote();
         }
     }
 

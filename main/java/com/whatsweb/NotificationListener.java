@@ -32,7 +32,7 @@ public class NotificationListener extends NotificationListenerService {
                 NotificationInfo newNotification = new NotificationInfo(package_name, title, text, notificationObject.when, notificationObject);
                 //Log.v("title", newNotification.getTitle());
                 Log.v("text", newNotification.getText());
-                if(newNotification.getApp().equals("com.foxnews.android") &&
+                if(newNotification.getApp()!=null && newNotification.getApp().equals("com.foxnews.android") &&
                         ((CheckBox)NotificationInfo.activity.findViewById(R.id.foxAlerts)).isChecked() &&
                         (MainActivity.receivedMessagesList.size() == 0 || !notificationWasSent(newNotification, MainActivity.receivedMessagesList) )) {
                     newNotification.sendToUser();
@@ -41,14 +41,14 @@ public class NotificationListener extends NotificationListenerService {
                         MainActivity.receivedMessagesList.remove(0);
                     }
                 }
-                if(newNotification.getApp().equals("com.whatsapp") &&
+                if(newNotification.getApp()!=null && newNotification.getApp().equals("com.whatsapp") &&
                         (MainActivity.receivedMessagesList.size() == 0 || !notificationWasSent(newNotification, MainActivity.receivedMessagesList) )) {
                     newNotification.sendToUser();
                     MainActivity.receivedMessagesList.add(newNotification);
                     if(MainActivity.receivedMessagesList.size()>=20) {
                         MainActivity.receivedMessagesList.remove(0);
                     }
-                } else if(newNotification.getApp().equals("com.groupme.android") && !newNotification.forProgramOnly) {
+                } else if(newNotification.getApp()!=null && newNotification.getApp().equals("com.groupme.android") && !newNotification.forProgramOnly) {
                     if((MainActivity.sentMessagesList.size() == 0 || !notificationWasSent(newNotification, MainActivity.sentMessagesList))) {
                         newNotification.sendToWhatsApp();
                         MainActivity.sentMessagesList.add(newNotification);
@@ -68,8 +68,10 @@ public class NotificationListener extends NotificationListenerService {
     }
 
     public boolean isUselessMessage(String message) {
-        if(message.toLowerCase().contains("backup in progress") || message.contains("new messages") || message.contains("Ongoing voice call")
-                || (message.contains("messages from")&&message.contains("chats")) ||
+        if(message.toLowerCase().contains("backup in progress") || message.contains("new messages") ||
+                message.toLowerCase().contains("logged out of whatsapp") ||
+                message.contains("Ongoing voice call") || message.toLowerCase().contains("finished backup") ||
+                (message.contains("messages from")&&message.contains("chats")) ||
                 (message.length()>17&&message.substring(0,17).equals("Deleting messages"))) {
             return true;
         }

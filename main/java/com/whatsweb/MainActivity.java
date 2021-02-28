@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.view.View;
@@ -18,6 +19,7 @@ import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -56,6 +58,8 @@ public class MainActivity extends Activity {
     public static String groupMeBaseUrl;
     public static ArrayList<NotificationInfo> receivedMessagesList;
     public static ArrayList<NotificationInfo> sentMessagesList;//mark as sent and when send new, loop through and send any unsent
+    public static ArrayList<String> sentImageList;
+    public static ArrayList<String> sentVoiceNoteList;
     public static HashMap<String, GroupInfo> groupMeChats;
     public static int numGroupsUnknownName;
     NotificationListener notificationListener;
@@ -101,10 +105,29 @@ public class MainActivity extends Activity {
         userName="Moshe Goldberg";
         phoneEmail="7187875275@pm.sprint.com";
         phoneNumber="17187875275";
-        groupMeApiKey="token=iAepUpNi0hE3bR6sBS0gfrceTnXVNBODWUDDo5Bk";//m6rfsk8wVk2ZPa10w36GL1LYcSz7bDhGIzzec470 (old) //NT7QDhcg7zXwTgdTlzqDKW4uy2TAuRkhHztn6KUP
+        groupMeApiKey="token=zA7ZgvZ3kfUMBQKWyH2M9bsQ99i7Jsn1Uk45KDCr";//m6rfsk8wVk2ZPa10w36GL1LYcSz7bDhGIzzec470 (old)
+                        // NT7QDhcg7zXwTgdTlzqDKW4uy2TAuRkhHztn6KUP //iAepUpNi0hE3bR6sBS0gfrceTnXVNBODWUDDo5Bk
+                        //nNyeyflMOvU1jMwrYyMeigVEQcCcguRddBTYicQG //FKJ9maSTIPFN9x3orpiFB8lYmeKiHCBs2gte7Xvg
+                        //vRQrMNNg6PBoaSbUB9Fe0Vij9DqrceTDBoEpVXdd
         groupMeBaseUrl="https://api.groupme.com/v3";
         groupMeChats = new  HashMap<String, GroupInfo>();
         numGroupsUnknownName=0;
+        sentImageList = new ArrayList<String>();
+        sentVoiceNoteList = new ArrayList<String>();
+        File imageDirectory = new File(Environment.getExternalStorageDirectory().getPath()+"/WhatsApp/Media/WhatsApp Images");
+        ArrayList<File> imageFiles = getAllFiles(imageDirectory);
+        if (imageFiles!=null && imageFiles.size()!=0) {
+            for (File imageFile : imageFiles) {
+                sentImageList.add(imageFile.getPath());
+            }
+        }
+        File voiceNoteDirectory = new File(Environment.getExternalStorageDirectory().getPath()+"/WhatsApp/Media/WhatsApp Voice Notes");
+        ArrayList<File> voiceNoteFiles = getAllFiles(voiceNoteDirectory);
+        if (voiceNoteFiles!=null && voiceNoteFiles.size()!=0) {
+            for (File voiceNoteFile : voiceNoteFiles) {
+                sentVoiceNoteList.add(voiceNoteFile.getPath());
+            }
+        }
         new GroupQueryTask().execute();
     }
 
@@ -167,5 +190,17 @@ public class MainActivity extends Activity {
         }
 
         return false;
+    }
+
+    public ArrayList<File> getAllFiles(File filePath) {
+        ArrayList<File> allFiles = new ArrayList<File>();
+        if(filePath==null || filePath.isFile()) {
+            allFiles.add(filePath);
+        } else if(filePath.isDirectory()){
+            for (File subFilePath : filePath.listFiles()) {
+                allFiles.addAll(getAllFiles(subFilePath));
+            }
+        }
+        return  allFiles;
     }
 }
