@@ -10,6 +10,6 @@ As of now, must run on pc with android emulator containing this app, whatsapp, a
 Eventual goal is to put groupme portion on server and emulator containing this app and whatsapp on server as well
 
 Additional Features:
-Fox News Alerts
-Websters Dictionary
+Fox News Alerts,
+Websters Dictionary,
 Supreme Court Oral Argument Recording Query
