@@ -1,6 +1,7 @@
 package com.whatsweb;
 
 import android.os.Environment;
+import android.util.Log;
 
 import java.io.File;
 import java.io.UnsupportedEncodingException;
@@ -26,6 +27,7 @@ public class GMail {
     final String smtpAuth = "true";
     final String starttls = "true";
     final String emailHost = "smtp.gmail.com";
+    final float idealImageSize = 10.0F;
 
     String fromEmail;
     String fromName;
@@ -33,25 +35,31 @@ public class GMail {
     String toEmail;
     String emailSubject;
     String emailBody;
-    File attachment;
+    ArrayList<File> attachmentList;
+    boolean useOriginalName;
 
     Properties emailProperties;
     Session mailSession;
     MimeMessage emailMessage;
 
-    public GMail(String fromEmail, String fromName, String fromPassword, String toEmail, String emailSubject, String emailBody, File attachment) {
+    public GMail(String fromEmail, String fromName, String fromPassword, String toEmail, String emailSubject, String emailBody, ArrayList<File> attachmentList, boolean useOriginalName) {
         this.fromEmail = fromEmail;
         this.fromName = fromName;
         this.fromPassword = fromPassword;
         this.toEmail = toEmail;
         this.emailSubject = emailSubject;
         this.emailBody = emailBody;
-        this.attachment = attachment;
+        this.attachmentList = attachmentList;
+        this.useOriginalName = useOriginalName;
 
         emailProperties = System.getProperties();
         emailProperties.put("mail.smtp.port", emailPort);
         emailProperties.put("mail.smtp.auth", smtpAuth);
         emailProperties.put("mail.smtp.starttls.enable", starttls);
+    }
+
+    public GMail(String fromEmail, String fromName, String fromPassword, String toEmail, String emailSubject, String emailBody, ArrayList<File> attachmentList) {
+        new GMail(fromEmail,fromName,fromPassword,toEmail,emailSubject,emailBody,attachmentList,false);
     }
 
     public MimeMessage createEmailMessage() throws MessagingException, UnsupportedEncodingException {
@@ -63,15 +71,31 @@ public class GMail {
         emailMessage.addRecipient(Message.RecipientType.TO, new InternetAddress(toEmail));
 
         emailMessage.setSubject(emailSubject);
-        if(this.attachment==null) {
+        if(this.attachmentList==null || this.attachmentList.size()==0) {
             emailMessage.setContent(emailBody, "text/html");// for a html email
         } else {
-            MimeBodyPart attachmentBodyPart = new MimeBodyPart();
-            DataSource fileSource = new FileDataSource(this.attachment);
-            attachmentBodyPart.setDataHandler(new DataHandler(fileSource));
-            attachmentBodyPart.setFileName("WhatsApp Image");
             Multipart multipart = new MimeMultipart();
-            multipart.addBodyPart(attachmentBodyPart);
+            int counter = 1;
+            for(File attachment : this.attachmentList) {
+//                //compress
+//                float originalSize = attachment.length()/1000;
+//                float compressQuality = (originalSize + idealImageSize)/2;
+//                System.out.println("Converting from " + originalSize + "KB to " + originalSize*compressQuality + "KB.");
+                
+
+                //attach
+                MimeBodyPart attachmentBodyPart = new MimeBodyPart();
+                DataSource fileSource = new FileDataSource(attachment);
+                attachmentBodyPart.setDataHandler(new DataHandler(fileSource));
+                if (this.useOriginalName) {
+                    attachmentBodyPart.setFileName(attachment.getName());
+                    Log.v("File Name", attachment.getName());
+                } else {
+                    attachmentBodyPart.setFileName("WhatsApp Media " + counter);
+                }
+                multipart.addBodyPart(attachmentBodyPart);
+                counter++;
+            }
             emailMessage.setContent(multipart);
         }
         return emailMessage;
