@@ -31,7 +31,7 @@ public class NotificationListener extends NotificationListenerService {
             if(!isUselessMessage(text) && !title.contains("You") && !isUselessMessage(title)) {
                 NotificationInfo newNotification = new NotificationInfo(package_name, title, text, notificationObject.when, notificationObject);
                 //Log.v("title", newNotification.getTitle());
-                Log.v("text", newNotification.getText());
+//                Log.v("text", newNotification.getText());
                 if(newNotification.getApp()!=null && newNotification.getApp().equals("com.foxnews.android") &&
                         ((CheckBox)NotificationInfo.activity.findViewById(R.id.foxAlerts)).isChecked() &&
                         (MainActivity.receivedMessagesList.size() == 0 || !notificationWasSent(newNotification, MainActivity.receivedMessagesList) )) {
@@ -58,9 +58,6 @@ public class NotificationListener extends NotificationListenerService {
                     }
                 }
             }
-            //max notifications is 50 on emulator
-            //Not canceling individual notification on BlueStacks for some reason
-            //cancelNotification(sbn.getKey());
             cancelAllNotifications();
         } catch(Exception e) {
             e.printStackTrace();

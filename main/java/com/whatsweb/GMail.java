@@ -23,15 +23,18 @@ import javax.mail.internet.MimeMultipart;
 
 public class GMail {
 
+    /* Handle all file naming and compression (and similar processes) earlier, put in "to send" folder of app,
+    then use GMail to send all attachments    *
+    * */
+
     final String emailPort = "587";// gmail's smtp port
     final String smtpAuth = "true";
     final String starttls = "true";
     final String emailHost = "smtp.gmail.com";
-    final float idealImageSize = 10.0F;
 
-    String fromEmail;
+    String fromEmail="whatswebtext@gmail.com";
     String fromName;
-    String fromPassword;
+    String fromPassword="ChoneinHadaas425";
     String toEmail;
     String emailSubject;
     String emailBody;
@@ -42,29 +45,25 @@ public class GMail {
     Session mailSession;
     MimeMessage emailMessage;
 
-    public GMail(String fromEmail, String fromName, String fromPassword, String toEmail, String emailSubject, String emailBody, ArrayList<File> attachmentList, boolean useOriginalName) {
-        this.fromEmail = fromEmail;
+    public GMail(String fromName, String toEmail, String emailSubject, String emailBody,
+                 ArrayList<File> attachmentList, boolean useOriginalName) {
         this.fromName = fromName;
-        this.fromPassword = fromPassword;
         this.toEmail = toEmail;
         this.emailSubject = emailSubject;
         this.emailBody = emailBody;
         this.attachmentList = attachmentList;
         this.useOriginalName = useOriginalName;
 
-        emailProperties = System.getProperties();
-        emailProperties.put("mail.smtp.port", emailPort);
-        emailProperties.put("mail.smtp.auth", smtpAuth);
-        emailProperties.put("mail.smtp.starttls.enable", starttls);
-    }
-
-    public GMail(String fromEmail, String fromName, String fromPassword, String toEmail, String emailSubject, String emailBody, ArrayList<File> attachmentList) {
-        new GMail(fromEmail,fromName,fromPassword,toEmail,emailSubject,emailBody,attachmentList,false);
+        this.emailProperties = System.getProperties();
+        this.emailProperties.put("mail.smtp.port", emailPort);
+        this.emailProperties.put("mail.smtp.auth", smtpAuth);
+        this.emailProperties.put("mail.smtp.starttls.enable", starttls);
     }
 
     public MimeMessage createEmailMessage() throws MessagingException, UnsupportedEncodingException {
+        System.out.println(this.emailProperties.toString());
 
-        mailSession = Session.getDefaultInstance(emailProperties, null);
+        mailSession = Session.getDefaultInstance(this.emailProperties, null);
         emailMessage = new MimeMessage(mailSession);
 
         emailMessage.setFrom(new InternetAddress(fromEmail,fromName));
@@ -77,12 +76,6 @@ public class GMail {
             Multipart multipart = new MimeMultipart();
             int counter = 1;
             for(File attachment : this.attachmentList) {
-//                //compress
-//                float originalSize = attachment.length()/1000;
-//                float compressQuality = (originalSize + idealImageSize)/2;
-//                System.out.println("Converting from " + originalSize + "KB to " + originalSize*compressQuality + "KB.");
-                
-
                 //attach
                 MimeBodyPart attachmentBodyPart = new MimeBodyPart();
                 DataSource fileSource = new FileDataSource(attachment);

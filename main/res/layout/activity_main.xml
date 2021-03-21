@@ -6,21 +6,6 @@
     android:layout_height="match_parent"
     tools:context="com.whatsweb.MainActivity">
 
-    <TextView
-        android:id="@+id/submitted"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Your information has been entered."
-        android:textAlignment="center"
-        android:textColor="@android:color/secondary_text_light"
-        android:textSize="15sp"
-        android:visibility="invisible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias=".27" />
-
     <EditText
         android:id="@+id/editTextTextPersonName2"
         android:layout_width="wrap_content"
@@ -60,6 +45,19 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias=".55" />
 
+    <EditText
+        android:id="@+id/editTextApiKey"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:hint="@string/api_key"
+        android:inputType="textEmailAddress"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias=".65" />
+
     <TextView
         android:id="@+id/textView"
         android:layout_width="wrap_content"
@@ -79,22 +77,23 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:onClick="getUserFields"
-        android:text="Enter"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias=".67" />
-
-    <CheckBox
-        android:id="@+id/foxAlerts"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="News Alerts"
-        android:checked="true"
+        android:text="@string/enter"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias=".75" />
+
+    <CheckBox
+        android:id="@+id/foxAlerts"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:checked="true"
+        android:text="@string/news_alerts"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias=".85" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

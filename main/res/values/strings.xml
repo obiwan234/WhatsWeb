@@ -3,4 +3,7 @@
     <string name="phone_mms_email">Phone MMS Email</string>
     <string name="name">Name</string>
     <string name="phone">Phone</string>
+    <string name="api_key">API Key</string>
+    <string name="enter">Enter</string>
+    <string name="news_alerts">News Alerts</string>
 </resources>
