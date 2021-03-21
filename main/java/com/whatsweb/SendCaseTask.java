@@ -121,8 +121,7 @@ public class SendCaseTask extends AsyncTask{
                     ArrayList<File> arguments = new ArrayList<File>();
                     arguments.add(argFile);
 
-                    GMail androidEmail = new GMail("whatswebtext@gmail.com", "Supreme Court",
-                            "ChoneinHadaas425", "nomsg419@gmail.com",
+                    GMail androidEmail = new GMail( "Supreme Court", "nomsg419@gmail.com",
                             "(" + caseToSend.getString("date") + ") " + caseToSend.getString("name"),
                             "This is the case.", arguments, true);
                     androidEmail.createEmailMessage();

@@ -5,6 +5,7 @@ import android.accessibilityservice.AccessibilityService;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -13,7 +14,6 @@ import android.provider.Settings;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.TextView;
 
 import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
@@ -55,7 +55,7 @@ public class MainActivity extends Activity {
     public static String phoneNumber;
     public static String userName;//group me
     public static String groupMeApiKey;
-    public static String groupMeBaseUrl;
+    public static String groupMeBaseUrl="https://api.groupme.com/v3";
     public static ArrayList<NotificationInfo> receivedMessagesList;
     public static ArrayList<NotificationInfo> sentMessagesList;//mark as sent and when send new, loop through and send any unsent
     public static ArrayList<String> sentImageList;
@@ -64,6 +64,8 @@ public class MainActivity extends Activity {
     public static int numGroupsUnknownName;
     NotificationListener notificationListener;
     WhatsappAccessibilityService whatsappAccessibilityService;
+    SharedPreferences sharedPreferences;
+    SharedPreferences.Editor infoEditor;
 
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP_MR1)
@@ -102,14 +104,26 @@ public class MainActivity extends Activity {
             startActivity(new Intent (Settings.ACTION_ACCESSIBILITY_SETTINGS));
         }
         NotificationInfo.activity=this;
-        userName="Moshe Goldberg";
-        phoneEmail="7187875275@pm.sprint.com";
-        phoneNumber="17187875275";
-        groupMeApiKey="token=zA7ZgvZ3kfUMBQKWyH2M9bsQ99i7Jsn1Uk45KDCr";//m6rfsk8wVk2ZPa10w36GL1LYcSz7bDhGIzzec470 (old)
+        sharedPreferences = getPreferences(MODE_PRIVATE);
+        infoEditor = sharedPreferences.edit();
+
+        //userName="Moshe Goldberg";
+        userName=sharedPreferences.getString("userName","Moshe Goldberg");
+        System.out.println("username: "+userName);
+        //phoneEmail="7187875275@pm.sprint.com";
+        phoneEmail=sharedPreferences.getString("phoneEmail","7187875275@pm.sprint.com");
+        System.out.println("phone email: "+phoneEmail);
+        //phoneNumber="17187875275";
+        phoneNumber=sharedPreferences.getString("phoneNumber","17187875275");
+        System.out.println("phone number: "+phoneNumber);
+        //groupMeApiKey="token=fs1IgMLDI3e93WKOD4sIxR8RCSrGFTaKy6Sf7Sno";//m6rfsk8wVk2ZPa10w36GL1LYcSz7bDhGIzzec470 (old)
                         // NT7QDhcg7zXwTgdTlzqDKW4uy2TAuRkhHztn6KUP //iAepUpNi0hE3bR6sBS0gfrceTnXVNBODWUDDo5Bk
                         //nNyeyflMOvU1jMwrYyMeigVEQcCcguRddBTYicQG //FKJ9maSTIPFN9x3orpiFB8lYmeKiHCBs2gte7Xvg
-                        //vRQrMNNg6PBoaSbUB9Fe0Vij9DqrceTDBoEpVXdd
-        groupMeBaseUrl="https://api.groupme.com/v3";
+                        //zA7ZgvZ3kfUMBQKWyH2M9bsQ99i7Jsn1Uk45KDCr //vRQrMNNg6PBoaSbUB9Fe0Vij9DqrceTDBoEpVXdd
+        groupMeApiKey="token="+sharedPreferences.getString("groupMeApiKey","fs1IgMLDI3e93WKOD4sIxR8RCSrGFTaKy6Sf7Sno");
+        System.out.println("api key: "+groupMeApiKey);
+
+
         groupMeChats = new  HashMap<String, GroupInfo>();
         numGroupsUnknownName=0;
         sentImageList = new ArrayList<String>();
@@ -128,7 +142,8 @@ public class MainActivity extends Activity {
                 sentVoiceNoteList.add(voiceNoteFile.getPath());
             }
         }
-        new GroupQueryTask().execute();
+        //new GroupQueryTask().execute();
+        new GroupMeTask().execute("query");
     }
 
     public void getUserFields() {
@@ -139,9 +154,13 @@ public class MainActivity extends Activity {
         String phone = inputPhone.getText().toString();
         EditText inputEmail = findViewById(R.id.editTextTextEmailAddress2);
         String email = inputEmail.getText().toString();
+        EditText inputApiKey = findViewById(R.id.editTextApiKey);
+        String apiKey = inputApiKey.getText().toString();
         if(name!=null && !name.equals(getString(R.string.name)) && name.trim().length()>0 && !name.equals(userName)) {
             isNewInfo=true;
             userName=name;
+            infoEditor.putString("userName", userName);
+            infoEditor.commit();
         }
         if(phone!=null && !phone.equals(getString(R.string.phone)) && phone.trim().length()>0 && !phone.equals(phoneNumber)) {
             isNewInfo=true;
@@ -149,17 +168,34 @@ public class MainActivity extends Activity {
             if(phoneNumber.length()==10) {
                 phoneNumber = "1" + phoneNumber;
             }
+            infoEditor.putString("phoneNumber", phoneNumber);
+            infoEditor.commit();
         }
         if(email!=null && !email.equals(getString(R.string.phone_mms_email)) && email.trim().length()>0 && !email.equals(phoneEmail)) {
 
             isNewInfo=true;
             phoneEmail=email;
+            infoEditor.putString("phoneEmail", phoneEmail);
+            infoEditor.commit();
+        }
+        if(apiKey!=null && !apiKey.equals(getString(R.string.api_key)) && apiKey.trim().length()>0 && !apiKey.equals("token="+groupMeApiKey)) {
+            isNewInfo=true;
+            groupMeApiKey="token="+apiKey;
+            infoEditor.putString("groupMeApiKey", apiKey);
+            infoEditor.commit();
         }
         if(isNewInfo) {
-            new GroupQueryTask().execute();
-            TextView submissionNotice = findViewById(R.id.submitted);
-            submissionNotice.setVisibility(View.VISIBLE);
+            new GroupMeTask().execute("query");
+
+            System.out.println("username: "+userName);
+            System.out.println("phone email: "+phoneEmail);
+            System.out.println("phone number: "+phoneNumber);
+            System.out.println("api key: "+groupMeApiKey);
         }
+        inputName.getText().clear();
+        inputPhone.getText().clear();
+        inputEmail.getText().clear();
+        inputApiKey.getText().clear();
     }
 
     public void getUserFields(View view) {

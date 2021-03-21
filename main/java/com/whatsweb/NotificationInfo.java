@@ -10,12 +10,9 @@ import android.provider.ContactsContract;
 import android.util.Log;
 import android.widget.CheckBox;
 
-import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -31,32 +28,29 @@ public class NotificationInfo {
     private String to;
     private String from;
     private GroupInfo groupObject;
-    public boolean wasSent;
-    public boolean forProgramOnly;
-    public boolean isPicture;
-    public boolean isVoiceNote;
+    public boolean wasSent = false;
+    public boolean forProgramOnly = false;
+    public boolean isPicture = false;
+    public boolean isVoiceNote = false;
+    public boolean sendConfirmation = false;
     private String caption;
 
     public static Activity activity;
 
-    public  NotificationInfo(String app, String title, String text, long when, Notification notificationObject) throws JSONException, InterruptedException {
+    public  NotificationInfo(String app, String title, String text, long when, Notification notificationObject) {
         try {
             this.title = fixString(title);
             this.text = fixString(text);
             this.app = app;
             this.when = when;
-            this.wasSent = false;
             this.notificationObject = notificationObject;
-            this.forProgramOnly = false;
-            this.isPicture = false;
-            this.isVoiceNote=false;
             if (app.equals("com.whatsapp")) {//handle phone num not in contacts
                 //save reply object
                 if (notificationObject.actions != null) {
                     Notification.Action reply = notificationObject.actions[0];
                     this.setReplyAction(reply);
                 }
-                this.isPicture = this.text.indexOf(String.valueOf("\uD83D\uDCF7")) == 0;//Character.toString(this.text.charAt(0)).equals(String.valueOf("\uD83D\uDCF7"))
+                this.isPicture = this.text.indexOf(String.valueOf("\uD83D\uDCF7")) == 0;
                 this.isVoiceNote = this.text.indexOf(String.valueOf("\uD83C\uDFA4")) == 0;
                 //parse group chat title
                 if (title.contains(":")) {
@@ -96,6 +90,7 @@ public class NotificationInfo {
                 if (this.isVoiceNote) {
                     String voiceNoteLength = this.text.substring(this.text.indexOf("(")+1,this.text.indexOf(")"));
                     this.text = "(Voice Note) " + voiceNoteLength;
+                    this.caption = this.text;
                 }
             } else if (app.equals("com.groupme.android")) {
                 if (!this.getTitle().contains(MainActivity.userName + " WhatsWeb with")) {
@@ -190,11 +185,18 @@ public class NotificationInfo {
                         sendGroupMeMessage(firstMessage, this.groupObject);
                     }
                 }
+                if(this.getText().contains("(*)") && this.getText().trim().indexOf("(*)") == 0) {
+                    this.sendConfirmation = true;
+                    System.out.println(this.text.replace("(*)",""));
+                    this.setText(this.text.replace("(*)",""));
+                    System.out.println(this.text);
+                }
                 if (!forProgramOnly) {
                     this.setTo(smsNumber);
-                    this.setText(message); //redundant?
+                    if(!this.sendConfirmation) {
+                        this.setText(message); //does this do anything?
+                    }
                 }
-                //Log.v("smsNumber",smsNumber);
             } else if (app.equals("com.foxnews.android")) {
                 this.text = this.title + "\n" + this.text;
                 this.groupObject = getGroup("Fox News");
@@ -212,9 +214,7 @@ public class NotificationInfo {
     }
 
     private void handleAsWhatsAppImage() throws InterruptedException {
-        String fromEmail = "whatswebtext@gmail.com";
         String fromName = this.title;
-        String fromPassword = "ChoneinHadaas425";
         String toEmail = MainActivity.phoneEmail;
         String emailSubject = this.caption;
         String emailBody = "";
@@ -233,47 +233,63 @@ public class NotificationInfo {
             }
         }
         if(imageBatch.size()!=0) {
-            new SendMailTask().execute(fromEmail, fromName, fromPassword, toEmail, emailSubject, emailBody, imageBatch /*chosenFile*/);
+            System.out.println("Image Batch Size: " + imageBatch.size());
+            new SendMailTask().execute(fromName, toEmail, emailSubject, emailBody, imageBatch, false);
         }
     }
 
     private void handleAsWhatsAppVoiceNote() throws InterruptedException {
-//        String fromEmail = "whatswebtext@gmail.com";
-//        String fromName = this.title;
-//        String fromPassword = "ChoneinHadaas425";
-//        String toEmail = MainActivity.phoneEmail;
-//        String emailSubject = this.caption;
-//        String emailBody = "";
-//
-//        Thread.sleep(3500);//wait for download
-//        File directory = new File(Environment.getExternalStorageDirectory().getPath()+"/WhatsApp/Media/WhatsApp Voice Notes");
-//        ArrayList<File> files = getAllFiles(directory);
-//        System.out.println("Num Files: " + files.size());
-//        ArrayList<File> voiceNoteBatch = new ArrayList<File>();
-//        if (files!=null && files.size()!=0) {
-//            for (File file : files) {
-//                if(!MainActivity.sentVoiceNoteList.contains(file.getPath())) {
-//                    voiceNoteBatch.add(file);
-//                    MainActivity.sentVoiceNoteList.add(file.getPath());
-//                }
-//            }
-//        }
-//        //convert
-//        ArrayList<File> convertedVoiceNoteBatch = new ArrayList<File>();
-//        for(File opusVoiceNote : voiceNoteBatch) {
-//            try{
-//                //AudioInputStream
-//            }catch (IOException e) {
-//                System.out.println("Error: failure attempting to read "
-//                        + opusVoiceNote.getPath() + "!");
-//                return;
-//            }
-//        }
-//
-//        if(voiceNoteBatch.size()!=0) {
-//            new SendMailTask().execute(fromEmail, fromName, fromPassword, toEmail, emailSubject, emailBody, convertedVoiceNoteBatch /*chosenFile*/);
-//        }
+        String fromName = this.title;
+        String toEmail = MainActivity.phoneEmail;
+        String emailSubject = this.caption;
+        String emailBody = "";
+
+        Thread.sleep(3500);//wait for download
+        File directory = new File(Environment.getExternalStorageDirectory().getPath()+"/WhatsApp/Media/WhatsApp Voice Notes");
+        ArrayList<File> files = getAllFiles(directory);
+        System.out.println("Num Files: " + files.size());
+        ArrayList<File> voiceNoteBatch = new ArrayList<File>();
+        if (files!=null && files.size()!=0) {
+            for (File file : files) {
+                if(!MainActivity.sentVoiceNoteList.contains(file.getPath())) {
+                    System.out.println(file.getPath());
+                    voiceNoteBatch.add(file);
+                    MainActivity.sentVoiceNoteList.add(file.getPath());
+                }
+            }
+        }
+        //convert
+        System.out.println("start conversion");
+        ArrayList<File> convertedVoiceNoteBatch = new ArrayList<File>();
+        int counter=0;
+        for(File opusVoiceNote : voiceNoteBatch) {
+            System.out.println("Loop Number: " + counter);
+            try {
+                //////////////////////////////
+
+                //////////////////////////////
+                 counter++;
+            } catch (Exception e) {
+                Log.e("Conversion Failure", "Error: failure attempting to read " + opusVoiceNote.getPath() + "!");
+                return;
+            }
+
+            if(voiceNoteBatch.size()!=0) {
+                if(convertedVoiceNoteBatch.size()>0) {//conversion successful
+                    new SendMailTask().execute(fromName, toEmail, emailSubject, emailBody, convertedVoiceNoteBatch, true);
+                } else {
+                    new SendMailTask().execute(fromName, toEmail, emailSubject, emailBody, voiceNoteBatch, true);
+                }
+            }
+
+        }
     }
+
+//    //conversion helper methods//////////////////
+
+//    /////////////////////////////////////////////
+
+
 
     private void handleAsProgramMessage() throws JSONException, InterruptedException {
         String queryMessage = this.getText();
@@ -301,14 +317,14 @@ public class NotificationInfo {
                 this.setText("This group connects you with the WhatsApp chat, \"" + this.groupObject.getName() + "\".");
                 break;
             case "refresh": case "refreshchats": case "refreshgroups":
-                new GroupQueryTask().execute();
+                new GroupMeTask().execute("query");
                 this.setText("Refreshing...");
                 break;
             case "deletegroup": case "delete": case "deletechat": case "destroy":
                 System.out.println("Deleting chat");
-                new DeleteGroupTask().execute(this.groupObject);
+                new GroupMeTask().execute("delete", this.groupObject);
                 Thread.sleep(5000);
-                new GroupQueryTask().execute();
+                new GroupMeTask().execute("query");
                 break;
         }
         if(!queryMessage.equals("deletegroup") && !queryMessage.equals("delete") && !queryMessage.equals("deletechat")) {
@@ -425,7 +441,7 @@ public class NotificationInfo {
         return null;
     }
 
-    public void sendToWhatsApp() {
+    public void sendToWhatsApp() throws JSONException, InterruptedException {
         //add catch for number to existing (and no avail reply) to notify user that msg did not go through
         if(this.groupObject!=null&&this.groupObject.getNotificationReplyObject()!=null) {
             this.wasSent=this.groupObject.reply(this.getText());
@@ -436,6 +452,10 @@ public class NotificationInfo {
             sendIntent.putExtra("jid", this.getTo() + "@s.whatsapp.net"); //phone number without "+" prefix
             sendIntent.setPackage("com.whatsapp");
             activity.startActivity(sendIntent);
+        }
+        if(this.sendConfirmation) {
+            Thread.sleep(500);
+            sendGroupMeMessage("Message Sent.", this.groupObject);
         }
     }
 
@@ -454,13 +474,11 @@ public class NotificationInfo {
                 groupWith.setNotificationReplyObject(this);
             }
         } else {//if no username chat instantiated, use email (if uses this, api key may have changed)
-            String fromEmail = "whatswebtext@gmail.com";
             String fromName = this.title;
-            String fromPassword = "ChoneinHadaas425";
             String toEmail = MainActivity.phoneEmail;
             String emailSubject = "";
             String emailBody = this.text;
-            new SendMailTask().execute(fromEmail, fromName, fromPassword, toEmail, emailSubject, emailBody, null);
+            new SendMailTask().execute(fromName, toEmail, emailSubject, emailBody, null);
         }
         this.wasSent=true;
         if(this.isPicture) {
@@ -504,27 +522,11 @@ public class NotificationInfo {
     }
 
     private void createNewGroup(String name, String smsNumber) throws JSONException {
-        JSONObject newGroup = new JSONObject();
-        newGroup.put("name", MainActivity.userName + " WhatsWeb with " + name);
-        newGroup.put("description", "Communicate with " + smsNumber);
-        JSONObject clientMember = new JSONObject();
-        clientMember.put("nickname", MainActivity.userName);
-        clientMember.put("phone_number", "+1 "+ MainActivity.phoneNumber.substring(1));
-        JSONObject memberObject = new JSONObject();
-        JSONArray membersArray = new JSONArray();
-        membersArray.put(clientMember);
-        memberObject.put("members", membersArray);
-        System.out.println(memberObject.toString());
-        new CreateGroupTask().execute(newGroup,memberObject,name,smsNumber);
+        new GroupMeTask().execute("createGroup", name, smsNumber);
     }
 
     private void sendGroupMeMessage(String text, GroupInfo group) throws JSONException {
-        JSONObject messageObject = new JSONObject();
-        messageObject.put("source_guid", Long.toString(this.getWhen()));
-        messageObject.put("text", text);
-        JSONObject messageObjectWrapper = new JSONObject();
-        messageObjectWrapper.put("message", messageObject);
-        new SendGroupMeTask().execute(messageObjectWrapper, group);
+        new GroupMeTask().execute("sendMessage", group.getGroupID(), Long.toString(this.getWhen()), text);
         //to allow new source_guid for potential subsequent messages
         this.when+=1;
     }
